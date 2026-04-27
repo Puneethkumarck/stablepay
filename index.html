@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StablePay — Cross-Border Remittances on Solana</title>
+  <meta name="description" content="Instant, low-cost USD to INR remittances via USDC on Solana. No seed phrases, no app needed for recipients.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #070B1A;
+      --bg-secondary: #0D1228;
+      --bg-card: #141A36;
+      --bg-card-hover: #1A2242;
+      --border: #242C4F;
+      --fg-1: #FFFFFF;
+      --fg-2: #B8BDD6;
+      --fg-3: #6B7194;
+      --accent: #9945FF;
+      --success: #00FFA3;
+      --teal: #00FFA3;
+      --purple: #9945FF;
+      --magenta: #DC1FFF;
+      --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--fg-1);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Gradient orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb-purple { background: rgba(153, 69, 255, 0.15); width: 600px; height: 600px; }
+    .orb-teal { background: rgba(0, 255, 163, 0.08); width: 500px; height: 500px; }
+    .orb-magenta { background: rgba(220, 31, 255, 0.08); width: 400px; height: 400px; }
+
+    /* Navigation */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(7, 11, 26, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(36, 44, 79, 0.5);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo .logo-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--teal), var(--purple), var(--magenta));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--bg-primary);
+    }
+
+    .nav-logo span {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--fg-1);
+      letter-spacing: -0.5px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--fg-3);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--fg-1); }
+
+    .nav-cta {
+      background: linear-gradient(135deg, var(--teal), var(--purple));
+      color: var(--bg-primary);
+      padding: 8px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    .nav-cta:hover { opacity: 0.9; }
+
+    /* Sections */
+    section {
+      position: relative;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 100px 40px;
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--success);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -2px;
+    }
+
+    h2 {
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -1.5px;
+      margin-bottom: 24px;
+    }
+
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    p.subtitle {
+      font-size: 18px;
+      color: var(--fg-2);
+      max-width: 540px;
+      line-height: 1.7;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, var(--teal), var(--purple), var(--magenta));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-top: 140px;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1 { margin-bottom: 24px; }
+
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+      margin-top: 56px;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--fg-3);
+      margin-top: 4px;
+    }
+
+    /* Problem */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .problem-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      transition: background 0.2s;
+    }
+
+    .problem-card:hover { background: var(--bg-card-hover); }
+
+    .problem-card .icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(153, 69, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .problem-card p {
+      color: var(--fg-2);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* How it works */
+    .flow-steps {
+      display: flex;
+      gap: 0;
+      margin-top: 56px;
+      position: relative;
+    }
+
+    .flow-step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      padding: 0 16px;
+    }
+
+    .step-number {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--teal), var(--purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 20px;
+      color: var(--bg-primary);
+      margin: 0 auto 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .flow-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 28px;
+      left: calc(50% + 28px);
+      right: calc(-50% + 28px);
+      height: 2px;
+      background: linear-gradient(90deg, var(--purple), var(--teal));
+      opacity: 0.4;
+      z-index: 1;
+    }
+
+    .flow-step h3 { font-size: 16px; margin-bottom: 8px; }
+    .flow-step p { font-size: 14px; color: var(--fg-3); line-height: 1.5; }
+
+    /* Architecture */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .arch-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+    }
+
+    .arch-card .tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--success);
+      background: rgba(0, 255, 163, 0.1);
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+
+    .arch-card p {
+      color: var(--fg-2);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .tech-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .tech-pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--fg-2);
+      background: rgba(36, 44, 79, 0.6);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+
+    /* Key metrics */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .metric-card .metric-value {
+      font-family: var(--font-mono);
+      font-size: 36px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--teal), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .metric-card .metric-label {
+      color: var(--fg-3);
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    /* Demo */
+    .demo-section {
+      text-align: center;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 48px;
+    }
+
+    .demo-frame {
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      aspect-ratio: 9 / 16;
+    }
+
+    .demo-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+    }
+
+    .demo-caption {
+      font-size: 13px;
+      color: var(--fg-3);
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    /* Escrow diagram */
+    .escrow-flow {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px;
+      margin-top: 48px;
+    }
+
+    .escrow-flow h3 {
+      text-align: center;
+      margin-bottom: 32px;
+      font-size: 18px;
+      color: var(--fg-2);
+    }
+
+    .escrow-steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .escrow-node {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 24px;
+      text-align: center;
+      min-width: 140px;
+    }
+
+    .escrow-node .node-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--fg-1);
+    }
+
+    .escrow-node .node-sub {
+      font-size: 11px;
+      color: var(--fg-3);
+      margin-top: 4px;
+    }
+
+    .escrow-arrow {
+      color: var(--success);
+      font-size: 20px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-bottom: 24px;
+    }
+
+    .footer-links a {
+      color: var(--fg-3);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--fg-1); }
+
+    .footer-built {
+      font-size: 13px;
+      color: var(--fg-3);
+    }
+
+    .footer-built .solana-text {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      nav { padding: 12px 20px; }
+      .nav-links { display: none; }
+      section { padding: 60px 20px; }
+      .problem-grid { grid-template-columns: 1fr; }
+      .flow-steps { flex-direction: column; gap: 32px; }
+      .flow-step:not(:last-child)::after { display: none; }
+      .arch-grid { grid-template-columns: 1fr; }
+      .metrics-row { grid-template-columns: repeat(2, 1fr); }
+      .demo-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero-stats { flex-direction: column; gap: 24px; }
+      .escrow-steps { flex-direction: column; }
+      .escrow-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <a href="#" class="nav-logo">
+      <div class="logo-mark">S</div>
+      <span>stablepay</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#problem">Problem</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#demo">Demo</a></li>
+    </ul>
+    <a href="https://github.com/Puneethkumarck/stablepay-hackathon" class="nav-cta" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="orb orb-purple" style="top: -200px; left: -200px;"></div>
+    <div class="orb orb-teal" style="top: 100px; right: -150px;"></div>
+    <div class="hero-content">
+      <div class="section-label">Colosseum Frontier Hackathon 2026</div>
+      <h1>Send money home.<br><span class="gradient-text">Under a minute.</span></h1>
+      <p class="subtitle">
+        Real-time cross-border remittances via USDC on Solana.
+        No seed phrases for senders. No app needed for recipients.
+        Just real money, moving at the speed of the internet.
+      </p>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-value">$0.002</span>
+          <span class="stat-label">Network fee</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">~30s</span>
+          <span class="stat-label">Settlement time</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">USD &rarr; INR</span>
+          <span class="stat-label">Corridor</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value">48h</span>
+          <span class="stat-label">Claim window</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Problem -->
+  <section id="problem">
+    <div class="orb orb-magenta" style="top: 50%; right: -300px;"></div>
+    <div class="section-label">The Problem</div>
+    <h2>Sending money abroad is<br>still broken</h2>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="icon">&#128176;</div>
+        <h3>High fees</h3>
+        <p>Traditional remittance providers charge 5-10% in fees and unfavorable FX markups, eating into every transfer.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">&#9203;</div>
+        <h3>Slow settlement</h3>
+        <p>Wire transfers take 2-5 business days. Recipients wait, plans stall, and urgency goes unaddressed.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">&#128274;</div>
+        <h3>Crypto is complex</h3>
+        <p>Existing crypto solutions require seed phrases, wallet installs, and blockchain knowledge. Non-starters for most families.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how-it-works">
+    <div class="orb orb-purple" style="top: 0; left: -300px;"></div>
+    <div class="section-label">How It Works</div>
+    <h2>Five steps. Under a minute.</h2>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-number">1</div>
+        <h3>Sign in with Google</h3>
+        <p>MPC wallet created automatically. No seed phrases, no extensions.</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-number">2</div>
+        <h3>Add funds via Stripe</h3>
+        <p>Pay with credit/debit card. USDC deposited to your Solana wallet instantly.</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-number">3</div>
+        <h3>Enter amount &amp; recipient</h3>
+        <p>Live FX rate locked at send time. Recipient identified by phone number.</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-number">4</div>
+        <h3>USDC escrowed on Solana</h3>
+        <p>Funds locked in an Anchor escrow program. Verifiable on-chain.</p>
+      </div>
+      <div class="flow-step">
+        <div class="step-number">5</div>
+        <h3>Recipient claims via SMS</h3>
+        <p>Opens a link in any browser, enters UPI ID, receives INR. No app needed.</p>
+      </div>
+    </div>
+
+    <!-- Escrow guarantee -->
+    <div class="escrow-flow">
+      <h3>On-chain escrow guarantee</h3>
+      <div class="escrow-steps">
+        <div class="escrow-node">
+          <div class="node-title">Sender</div>
+          <div class="node-sub">Deposits USDC</div>
+        </div>
+        <div class="escrow-arrow">&rarr;</div>
+        <div class="escrow-node" style="border-color: var(--success);">
+          <div class="node-title" style="color: var(--success);">Solana Escrow</div>
+          <div class="node-sub">Anchor PDA &middot; 48h lock</div>
+        </div>
+        <div class="escrow-arrow">&rarr;</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="escrow-node" style="border-color: var(--success);">
+            <div class="node-title" style="color: var(--success);">Claimed</div>
+            <div class="node-sub">UPI ID &rarr; INR</div>
+          </div>
+          <div class="escrow-node" style="border-color: var(--accent);">
+            <div class="node-title" style="color: var(--accent);">Expired</div>
+            <div class="node-sub">Auto-refund &rarr; Sender</div>
+          </div>
+        </div>
+      </div>
+      <p style="text-align: center; color: var(--fg-3); font-size: 14px; margin-top: 20px;">
+        Funds are guaranteed: either delivered to the recipient or refunded to the sender. No third outcome.
+      </p>
+    </div>
+  </section>
+
+  <!-- Key metrics -->
+  <section>
+    <div class="section-label">By The Numbers</div>
+    <h2>Built for real impact</h2>
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-value">$0.002</div>
+        <div class="metric-label">Per-transfer network fee</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">&lt;30s</div>
+        <div class="metric-label">End-to-end settlement</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">0</div>
+        <div class="metric-label">Seed phrases required</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">0</div>
+        <div class="metric-label">Apps for recipients</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
+  <section id="architecture">
+    <div class="orb orb-teal" style="top: 50%; left: -300px;"></div>
+    <div class="section-label">Architecture</div>
+    <h2>Engineered end-to-end</h2>
+    <div class="arch-grid">
+      <div class="arch-card">
+        <div class="tag">On-chain</div>
+        <h3>Solana Escrow Program</h3>
+        <p>Custom Anchor program with deposit, claim, and refund instructions. PDA-based escrow accounts with time-locked expiry. All funds verifiable on Solana Explorer.</p>
+        <div class="tech-list">
+          <span class="tech-pill">Anchor 0.32</span>
+          <span class="tech-pill">Rust</span>
+          <span class="tech-pill">USDC SPL</span>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="tag">Backend</div>
+        <h3>Spring Boot Orchestrator</h3>
+        <p>Hexagonal architecture with domain-driven design. Temporal workflows orchestrate the full remittance lifecycle with automatic retries and guaranteed delivery.</p>
+        <div class="tech-list">
+          <span class="tech-pill">Java 25</span>
+          <span class="tech-pill">Spring Boot 4</span>
+          <span class="tech-pill">Temporal</span>
+          <span class="tech-pill">PostgreSQL</span>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="tag">Frontend</div>
+        <h3>Next.js Sender App</h3>
+        <p>Mobile-first web app with dark theme. Server Components for performance, BFF pattern for security. Three-step send wizard with live FX rates and real-time status tracking.</p>
+        <div class="tech-list">
+          <span class="tech-pill">Next.js 16</span>
+          <span class="tech-pill">React 19</span>
+          <span class="tech-pill">TypeScript 6</span>
+          <span class="tech-pill">Tailwind 4</span>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="tag">Security</div>
+        <h3>MPC Wallet Abstraction</h3>
+        <p>Threshold EdDSA signing via a Go sidecar. Users never see a private key. Google OAuth login provisions a Solana wallet automatically at sign-up.</p>
+        <div class="tech-list">
+          <span class="tech-pill">Go 1.26</span>
+          <span class="tech-pill">TSS-Lib</span>
+          <span class="tech-pill">EdDSA</span>
+          <span class="tech-pill">gRPC</span>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="tag">Fiat On-Ramp</div>
+        <h3>Stripe Payments</h3>
+        <p>Credit/debit card payments via Stripe Payment Intents. Webhook-confirmed funding deposits USDC into the user's Solana wallet. Min $1, max $10,000.</p>
+        <div class="tech-list">
+          <span class="tech-pill">Stripe API</span>
+          <span class="tech-pill">Webhooks</span>
+          <span class="tech-pill">Payment Intents</span>
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="tag">Notifications</div>
+        <h3>SMS via Twilio</h3>
+        <p>Claim links delivered to recipients via Twilio SMS. No app install required — the recipient opens the link in any mobile browser to claim their INR.</p>
+        <div class="tech-list">
+          <span class="tech-pill">Twilio</span>
+          <span class="tech-pill">SMS API</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Demo video + screenshots -->
+  <section id="demo" class="demo-section">
+    <div class="section-label">Live Demo</div>
+    <h2>See it in action</h2>
+    <p class="subtitle" style="margin: 0 auto 8px; text-align: center;">
+      End-to-end working flow on Solana devnet. Real transactions, real escrow, real SMS delivery.
+    </p>
+    <a href="https://youtu.be/DBT-2o1WAWs" target="_blank" rel="noopener" style="display: block; margin: 48px auto 56px; max-width: 800px; aspect-ratio: 16/9; border-radius: 20px; overflow: hidden; border: 1px solid var(--border); position: relative; text-decoration: none;">
+      <img src="https://img.youtube.com/vi/DBT-2o1WAWs/maxresdefault.jpg" alt="StablePay Demo Video" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='https://img.youtube.com/vi/DBT-2o1WAWs/hqdefault.jpg'">
+      <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); transition: background 0.2s;">
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none"><circle cx="36" cy="36" r="36" fill="rgba(0,0,0,0.6)"/><path d="M29 22L52 36L29 50V22Z" fill="white"/></svg>
+      </div>
+    </a>
+    <div class="demo-grid">
+      <div>
+        <div class="demo-frame">
+          <img src="images/10.png" alt="Home screen showing $1.00 USDC balance" onerror="this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;color:#6B7194;font-size:14px;padding:20px;text-align:center&quot;>Home Screen<br>$1.00 USDC Balance</div>'">
+        </div>
+        <div class="demo-caption">Home &mdash; Wallet balance</div>
+      </div>
+      <div>
+        <div class="demo-frame">
+          <img src="images/14.png" alt="Review screen showing $1.00 USDC to INR conversion" onerror="this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;color:#6B7194;font-size:14px;padding:20px;text-align:center&quot;>Review Screen<br>&#8377;94.34 to recipient</div>'">
+        </div>
+        <div class="demo-caption">Review &mdash; Locked FX rate</div>
+      </div>
+      <div>
+        <div class="demo-frame">
+          <img src="images/15.png" alt="Transfer sent with escrow confirmation" onerror="this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;color:#6B7194;font-size:14px;padding:20px;text-align:center&quot;>Transfer Sent<br>Escrowed on Solana</div>'">
+        </div>
+        <div class="demo-caption">Sent &mdash; On-chain escrow</div>
+      </div>
+      <div>
+        <div class="demo-frame">
+          <img src="images/21.png" alt="Remittance delivered with full timeline" onerror="this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:100%;color:#6B7194;font-size:14px;padding:20px;text-align:center&quot;>Delivered<br>Full timeline complete</div>'">
+        </div>
+        <div class="demo-caption">Delivered &mdash; Full timeline</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recipient experience -->
+  <section>
+    <div class="orb orb-purple" style="top: 0; right: -200px;"></div>
+    <div class="section-label">Recipient Experience</div>
+    <h2>No app. No wallet.<br>Just a link.</h2>
+    <div class="arch-grid">
+      <div class="arch-card" style="display: flex; flex-direction: column; justify-content: center;">
+        <h3 style="font-size: 24px; margin-bottom: 16px;">SMS &rarr; Browser &rarr; UPI</h3>
+        <p style="font-size: 16px;">
+          The recipient receives an SMS with a claim link. They open it in any browser &mdash; no app download, no wallet setup, no crypto knowledge required.
+        </p>
+        <p style="font-size: 16px; margin-top: 16px;">
+          They see who sent the money, the exact amount in rupees, a countdown timer, and enter their UPI ID to receive INR directly to their bank account within seconds.
+        </p>
+      </div>
+      <div class="arch-card" style="padding: 0; overflow: hidden; border-radius: 20px;">
+        <img src="images/20.png" alt="Claim page showing ₹94.34 with UPI input" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:300px;color:#6B7194;font-size:14px;padding:20px;text-align:center&quot;>Claim Page<br>&#8377;94.34 &mdash; Enter UPI ID</div>'">
+      </div>
+    </div>
+  </section>
+
+  <!-- Solana verification -->
+  <section>
+    <div class="section-label">On-Chain Proof</div>
+    <h2>Every transfer is verifiable</h2>
+    <div class="arch-card" style="margin-top: 32px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center;">
+        <div>
+          <h3 style="font-size: 20px; margin-bottom: 16px;">Real escrow on Solana devnet</h3>
+          <p style="color: var(--fg-2); font-size: 15px; line-height: 1.7; margin-bottom: 20px;">
+            Each remittance creates a PDA-based escrow account on Solana. The account holds USDC until claimed or refunded. Every step &mdash; deposit, claim, refund &mdash; is a signed on-chain transaction visible on Solana Explorer.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border);">
+              <span style="color: var(--fg-3); font-size: 13px;">Account data</span>
+              <span style="font-family: var(--font-mono); font-size: 13px; color: var(--fg-2);">154 bytes</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border);">
+              <span style="color: var(--fg-3); font-size: 13px;">Program</span>
+              <span style="font-family: var(--font-mono); font-size: 13px; color: var(--success);">stablepay-escrow</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 12px 16px; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border);">
+              <span style="color: var(--fg-3); font-size: 13px;">Network</span>
+              <span style="font-family: var(--font-mono); font-size: 13px; color: var(--fg-2);">Solana Devnet</span>
+            </div>
+          </div>
+        </div>
+        <div style="border-radius: 12px; overflow: hidden; border: 1px solid var(--border);">
+          <img src="images/18.png" alt="Solana Explorer showing escrow PDA account" style="width: 100%; display: block;" onerror="this.parentElement.innerHTML='<div style=&quot;display:flex;align-items:center;justify-content:center;height:250px;color:#6B7194;font-size:14px;padding:20px;text-align:center;background:#0D1228&quot;>Solana Explorer<br>Escrow PDA on Devnet</div>'">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Team -->
+  <section style="text-align: center;">
+    <div class="section-label">Builder</div>
+    <h2>Built by</h2>
+    <div style="display: inline-flex; flex-direction: column; align-items: center; margin-top: 32px;">
+      <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--teal), var(--purple), var(--magenta)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 32px; color: var(--bg-primary); margin-bottom: 16px;">P</div>
+      <h3 style="font-size: 22px; margin-bottom: 4px;">Puneethkumar CK</h3>
+      <p style="color: var(--fg-3); font-size: 14px; margin-bottom: 16px;">Full-stack engineer</p>
+      <div style="display: flex; gap: 20px;">
+        <a href="https://github.com/Puneethkumarck" target="_blank" rel="noopener" style="color: var(--fg-3); text-decoration: none; font-size: 14px; transition: color 0.2s;">GitHub</a>
+        <a href="https://x.com/punithck" target="_blank" rel="noopener" style="color: var(--fg-3); text-decoration: none; font-size: 14px; transition: color 0.2s;">X</a>
+        <a href="https://t.me/punithck" target="_blank" rel="noopener" style="color: var(--fg-3); text-decoration: none; font-size: 14px; transition: color 0.2s;">Telegram</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-links">
+      <a href="https://github.com/Puneethkumarck/stablepay-hackathon" target="_blank" rel="noopener">GitHub</a>
+      <a href="#demo">Demo</a>
+      <a href="#architecture">Architecture</a>
+    </div>
+    <p class="footer-built">
+      Built for the <strong>Colosseum Frontier Hackathon 2026</strong> &mdash; powered by <span class="solana-text">Solana</span>
+    </p>
+  </footer>
+
+</body>
+</html>
